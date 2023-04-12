@@ -241,7 +241,7 @@ cython_debug/
 
 
 tests
-.env.dist
+.env
 .gitignore
 .github
 LICENSE

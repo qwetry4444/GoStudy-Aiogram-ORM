@@ -7,6 +7,8 @@ from src.bot.structures.role import Role
 
 from ..models import Base, User
 from .abstract import Repository
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, insert, update
 
 
 class UserRepo(Repository[User]):
@@ -21,37 +23,43 @@ class UserRepo(Repository[User]):
         super().__init__(type_model=User, session=session)
 
     async def new(
-        self,
-        user_id: int,
-        user_name: Optional[str] = None,
-        first_name: Optional[str] = None,
-        second_name: Optional[str] = None,
-        language_code: Optional[str] = None,
-        is_premium: Optional[bool] = False,
-        role: Optional[Role] = Role.USER,
-        user_chat: Type[Base] = None,
+            self,
+            tg_id: int = None,
+            user_name: Optional[str] = None,
+            group_number: Optional[str] = None
     ) -> None:
         """
         Insert a new user into the database
         :param user_id: Telegram user id
         :param user_name: Telegram username
-        :param first_name: Telegram profile first name
-        :param second_name: Telegram profile second name
-        :param language_code: Telegram profile language code
-        :param is_premium: Telegram user premium status
-        :param role: User's role
-        :param user_chat: Telegram chat with user
+
         """
+
         new_user = await self.session.merge(
             User(
-                user_id=user_id,
+                tg_id=tg_id,
                 user_name=user_name,
-                first_name=first_name,
-                second_name=second_name,
-                language_code=language_code,
-                is_premium=is_premium,
-                role=role,
-                user_chat=user_chat,
+                group_number=group_number,
             )
         )
+        await self.session.commit()
         return new_user
+
+    async def exist(self, tg_id: int) -> bool:
+        sql = select(User).where(User.tg_id == tg_id)
+        request = (await self.session.execute(sql)).unique().one_or_none()
+        return bool(request)
+
+    async def get_user(self, tg_id: int) -> User:
+        async with self.session as session:
+            async with session.begin():
+                return (await session.execute(select(User).where(User.tg_id == tg_id))).scalars().unique().one_or_none()
+
+    async def get_user_group(self, tg_id: int) -> str:
+        sql = select(User.group_number).where(User.tg_id == tg_id)
+        request = (await self.session.execute(sql)).unique().one_or_none()
+        return request[0]
+
+    async def change_user_group(self, tg_id: int, new_group: str):
+        await self.session.execute(update(User).where(User.tg_id == tg_id).values(group_number=new_group))
+        await self.session.commit()

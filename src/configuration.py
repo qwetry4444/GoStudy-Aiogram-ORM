@@ -1,5 +1,6 @@
 """ This file represents configurations from files and environment"""
 import logging
+from dotenv import load_dotenv
 from dataclasses import dataclass
 from os import getenv
 
@@ -7,7 +8,7 @@ from sqlalchemy.engine import URL
 
 from .language.enums import LocaleIdentificationMode, Locales
 
-
+load_dotenv()
 @dataclass
 class DatabaseConfig:
     """Database connection variables"""
@@ -35,17 +36,17 @@ class DatabaseConfig:
         ).render_as_string(hide_password=False)
 
 
-@dataclass
-class RedisConfig:
-    """Redis connection variables"""
-
-    db: str = int(getenv("REDIS_DATABASE", 1))
-    host: str = getenv("REDIS_HOST", "redis")
-    port: int = int(getenv("REDIS_PORT", 6379))
-    passwd: int = getenv("REDIS_PASSWORD")
-    username: int = getenv("REDIS_USERNAME")
-    state_ttl: int = getenv("REDIS_TTL_STATE", None)
-    data_ttl: int = getenv("REDIS_TTL_DATA", None)
+# @dataclass
+# class RedisConfig:
+#     """Redis connection variables"""
+#
+#     db: str = int(getenv("REDIS_DATABASE", 1))
+#     host: str = getenv("REDIS_HOST", "redis")
+#     port: int = int(getenv("REDIS_PORT", 6379))
+#     passwd: int = getenv("REDIS_PASSWORD")
+#     username: int = getenv("REDIS_USERNAME")
+#     state_ttl: int = getenv("REDIS_TTL_STATE", None)
+#     data_ttl: int = getenv("REDIS_TTL_DATA", None)
 
 
 @dataclass
@@ -72,7 +73,7 @@ class Configuration:
     default_locale = Locales.RU
 
     db = DatabaseConfig()
-    redis = RedisConfig()
+    # redis = RedisConfig()
     bot = BotConfig()
     translate = TranslationsConfig()
 

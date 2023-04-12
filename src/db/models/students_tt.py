@@ -10,15 +10,15 @@ from .base import Base
 from .chat import Chat
 
 
-class User(Base):
+class Student_tt(Base):
     """
     User model
     """
 
     id: Mapped[int] = mapped_column(sa.Integer, unique=True, nullable=False, primary_key=True, autoincrement=True)
-    tg_id: Mapped[int] = mapped_column(sa.BigInteger, unique=True, nullable=False)
-    """ Telegram user id """
-    user_name: Mapped[str] = mapped_column(sa.VARCHAR(32), unique=False, nullable=False)
-    """ Telegram user name """
     group_number: Mapped[str] = mapped_column(sa.VARCHAR(10), unique=False, nullable=False)
+    """ Telegram user id """
+    weekday: Mapped[str] = mapped_column(sa.VARCHAR(10), unique=False, nullable=False)
+    """ Telegram user name """
+    timetable: Mapped[str] = mapped_column(sa.VARCHAR(2000), unique=False, nullable=False)
 

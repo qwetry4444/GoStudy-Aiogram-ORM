@@ -9,18 +9,21 @@ from aiogram import Bot
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.bot.structures.role import Role
-from src.cache import Cache
+# from src.cache import Cache
 from src.db.database import Database
 from src.language.enums import Locales
 from src.language.translator import LocalizedTranslator, Translator
-
+from aiogram.types import CallbackQuery, CallbackGame
 
 class TransferData(TypedDict):
+
     translator: Translator | LocalizedTranslator
     pool: Callable[[], AsyncSession]
     db: Database
     bot: Bot
-    cache: Cache
+    call: CallbackQuery
+    callback_data: CallbackGame
+    # cache: Cache
 
 
 class TransferUserData(TypedDict):

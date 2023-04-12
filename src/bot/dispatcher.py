@@ -7,18 +7,19 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.fsm.strategy import FSMStrategy
 
-from src.bot.middlewares.translator_md import TranslatorMiddleware
-from src.cache import Cache
+# from src.bot.middlewares.translator_md import TranslatorMiddleware
+# from src.cache import Cache
+from src.bot.middlewares.database_md import DatabaseMiddleware
 from src.configuration import conf
 
 from .logic import routers
 
 
-def get_redis_storage(
-    redis: Cache, state_ttl=conf.redis.state_ttl, data_ttl=conf.redis.data_ttl
-):
-    return RedisStorage(redis=redis, state_ttl=state_ttl, data_ttl=data_ttl)
-
+# def get_redis_storage(
+#     redis: Cache, state_ttl=conf.redis.state_ttl, data_ttl=conf.redis.data_ttl
+# ):
+#     # return RedisStorage(redis=redis, state_ttl=state_ttl, data_ttl=data_ttl)
+#     return RedisStorage(state_ttl=state_ttl, data_ttl=data_ttl)
 
 def get_dispatcher(
     storage: BaseStorage = MemoryStorage(),
@@ -33,7 +34,7 @@ def get_dispatcher(
         dp.include_router(router)
 
     # Register middlewares
-    dp.message.middleware(TranslatorMiddleware())
-    dp.callback_query.middleware(TranslatorMiddleware())
-
+    # dp.message.middleware(TranslatorMiddleware())
+    dp.callback_query.middleware(DatabaseMiddleware())
+    dp.message.middleware(DatabaseMiddleware())
     return dp
