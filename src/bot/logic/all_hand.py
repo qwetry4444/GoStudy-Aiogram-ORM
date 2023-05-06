@@ -119,9 +119,6 @@ async def get_lecturer_name_by_subject(message: types.Message, db: Database):
     await message.answer(lecturer_name)
 
 
-@all_hand_router.message(Text(text="3"))
-async def change_group_request(message: types.Message, db: Database):
-    await db.lecturer_tt.change_lec_name()
 
 
 @all_hand_router.message(Text(text="Расписание преподавателя"))
@@ -150,72 +147,60 @@ async def logic_inline(call: types.CallbackQuery, db: Database):
 
 
 
-# @all_hand_router.callback_query()
-# async def logic_inline(call, db: Database):
-#     group = await db.user.get_user_group(call.message.from_user.id)
-#     tt_spot = await db.student_tt1.get_tt_spot(group_number=group, subject=call.message.data)
-#     lecturer_name = await db.lecturer_tt.get_lucturer_name(tt_spot=tt_spot, group=group)
-#     await call.message.answer(lecturer_name)
+@all_hand_router.callback_query()
+async def logic_inline(call, db: Database):
+    group = await db.user.get_user_group(call.message.from_user.id)
+    tt_spot = await db.student_tt1.get_tt_spot(group_number=group, subject=call.message.data)
+    lecturer_name = await db.lecturer_tt.get_lucturer_name(tt_spot=tt_spot, group=group)
+    await call.message.answer(lecturer_name)
 
 
-def tt_one_1(p, tt_p, tt_1):
-    for i in tt_1:
-        if p in i:
-            if " | " not in i:
-                if "п/г" not in i:
-                    if "//" not in i:
-                        tt_p.append(i.split("- ")[1].split(", ")[0])
-                        break
-                    else:
-                        tt_p.append(
-                            f"""{i.split("- ")[1].split("//")[0].split(", ")[0]}//{i.split("- ")[1].split("//")[1].split(", ")[0]}""")
-                        break
-                else:
-                    tt_p.append(
-                        f"{i.split(', п/г')[0].split(', ')[0].split(' - ')[1]}, п/г{i.split(', п/г')[1].split(', ')[0]}")
-                    break
-            else:
-                tt = i.split(" - ")[1]
-                print(tt)
-                a = "• 4 пара (13:20-14:40) - Иностранный язык, п/г1, А517 | //Сопротивление материалов, п/г2, А213"
-                x1 = tt.split(' | ')[0]
-                if "//" in x1:
-                    if ', п/г' in x1.split('//')[0]:
-                        x11 = f"{x1.split('//')[0].split(', п/г')[0]}, п/г{x1.split('//')[0].split(', п/г')[1].split(', ')[0]}"
-                    else:
-                        x11 = f"{x1.split('//')[0].split(', ')[0]}"
-                    if ', п/г' in x1.split('//')[1]:
-                        x12 = f"{x1.split('//')[1].split(', п/г')[0]}, п/г{x1.split('//')[1].split(', п/г')[1].split(', ')[0]}"
-                    else:
-                        x12 = f"{x1.split('//')[1].split(', ')[0]}"
-                else:
-                    x11 = f"{x1.split(', п/г')[0]}, п/г{x1.split(', п/г')[1].split(', ')[0]}"
-
-                x2 = tt.split(' | ')[1]
-                if "//" in x2:
-                    if ', п/г' in x2.split('//')[0]:
-                        x21 = f"{x2.split('//')[0].split(', п/г')[0]}, п/г{x2.split('//')[0].split(', п/г')[1].split(', ')[0]}"
-                    else:
-                        x21 = f"{x2.split('//')[0].split(', ')[0]}"
-                    if ', п/г' in x2.split('//')[0]:
-                        x22 = f"{x2.split('//')[1].split(', п/г')[0]}, п/г{x2.split('//')[1].split(', п/г')[1].split(', ')[0]}"
-                    else:
-                        x22 = f"{x2.split('//')[1].split(', ')[0]}"
-                else:
-                    x21 = f"{x2.split(', п/г')[0]}, п/г{x2.split(', п/г')[1].split(', ')[0]}"
-
-                if "//" in x1 and "//" in x2:
-                    tt_p.append(f"{x11.rstrip()}//{x12.rstrip()} | {x21.rstrip()}//{x22.rstrip()}")
-                elif "//" in x1:
-                    tt_p.append(f"{x11.rstrip()}//{x12.rstrip()} | {x21.rstrip()}")
-                elif "//" in x2:
-                    tt_p.append(f"{x11.rstrip()} | {x21.rstrip()}//{x22.rstrip()}")
-                break
+def get_corp(i):
+    a = ' '
+    if ", У" in i:
+        a = ", У"
+    elif ", А" in i:
+        a = ", А"
+    elif ", С" in i:
+        a = ", С"
+    elif ", К" in i:
+        a = ", К"
+    elif ", K" in i:
+        a = ", K"
+    elif ", Г" in i:
+        a = ", Г"
+    elif ", Э" in i:
+        a = ", ЭОиДОТ"
     else:
-        tt_p.append(None)
+        a = ''
+    return a
 
+def slash_parse_a(i):
+    x1 = i.split("//")[0]
+    x2 = i.split("//")[1]
+    a1 = get_corp(x1)
+    a2 = get_corp(x2)
 
-# Физика, п/г1, А316// | //Физика, п/г2, А316
+    if a1 and a2:
+        return f"""{a1[2:]}{x1.split(a1)[1]}//{a2[2:]}{x2.split(a2)[1]}"""
+    elif a1:
+        return f"""{a1[2:]}{x1.split(a1)[1]}//"""
+    else:
+        return f"""{a2[2:]}{x2.split(a2)[1]}"""
+
+def slash_parse_p(i, tt_p):
+    x1 = i.split("//")[0]
+    x2 = i.split("//")[1]
+    a1 = get_corp(x1)
+    a2 = get_corp(x2)
+
+    if a1 and a2:
+        return f"""{x1.split(a1)[0].split(', п/г')[0]}//{x2.split(a2)[0].split(', п/г')[0]}"""
+    elif a1:
+        return f"""{x1.split(a1)[0].split(', п/г')[0]}//"""
+    else:
+        return f"""//{x2.split(a2)[0].split(', п/г')[0]}"""
+
 def tt_one(tt_1):
     # • 1 пара (08:30-09:50) - Иностранный язык, п/г1, У507 | Структурное программирование, п/г2, У408
     tt_one_1("1 пара", tt_1p, tt_1)
@@ -227,86 +212,257 @@ def tt_one(tt_1):
     tt_one_1("7 пара", tt_7p, tt_1)
     tt_one_1("8 пара", tt_8p, tt_1)
 
+def tt_one_1(p, tt_p, tt_1):
+    for i in tt_1:
+        if p in i and ',' in i:
+            i = i.split(") - ")[1]
+            if " | " not in i:
+                if "//" not in i:
+                    a = get_corp(i)
+                    if "п/г" not in i:
+                        tt_p.append(i.split(a)[0].strip())
+                        break
+                    else:
+                        tt_p.append(f"""{i.split(", п/г")[0]}, п/г{i.split(", п/г")[1].split(a)[0]}""".strip())
+                        break
+                else:
+                    p1 = i.split("//")[0]
+                    p2 = i.split("//")[1]
+                    a1 = get_corp(p1)
+                    a2 = get_corp(p2)
+                    if a1:
+                        if "п/г" in p1:
+                            p1 = f"""{p1.split(", п/г")[0]}, п/г{p1.split(", п/г")[1].split(a1)[0]}"""
+                        else:
+                            p1 = p1.split(a1)[0]
+                    if a2:
+                        if "п/г" in p2:
+                            p2 = f"""{p2.split(", п/г")[0]}, п/г{p2.split(", п/г")[1].split(a2)[0]}"""
+                        else:
+                            p2 = p2.split(a2)[0]
+
+                    if a1 and a2:
+                        tt = f"{p1}//{p2}"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        tt_p.append(tt.strip())
+                        break
+                    elif a1:
+                        tt = f"{p1}//"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        tt_p.append(tt.strip())
+                        break
+                    elif a2:
+                        tt = f"//{p2}"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        tt_p.append(tt.strip())
+                        break
+            else:
+                p1 = i.split("|")[0]
+                p2 = i.split("|")[1]
+                a1 = get_corp(p1)
+                a2 = get_corp(p2)
+
+                if "//" in p1:
+                    p11 = p1.split("//")[0]
+                    p21 = p1.split("//")[1]
+                    a11 = get_corp(p11)
+                    a21 = get_corp(p21)
+                    if a11:
+                        if "п/г" in p11:
+                            p11 = f"""{p11.split(", п/г")[0]}, п/г{p11.split(", п/г")[1].split(a11)[0]}"""
+                        else:
+                            p11 = p11.split(a11)[0]
+                    if a21:
+                        if "п/г" in p21:
+                            p21 = f"""{p21.split(", п/г")[0]}, п/г{p21.split(", п/г")[1].split(a21)[0]}"""
+                        else:
+                            p21 = p21.split(a21)[0]
+
+                    if a11 and a21:
+                        tt = f"{p11}//{p21}"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        p1 = tt
+                    elif a11:
+                        tt = f"{p11}//"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        p1 = tt
+                    elif a21:
+                        tt = f"//{p21}"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        p1 = tt
+                else:
+                    if "п/г" not in p1:
+                        p1 = p1.split(a1)[0]
+                    else:
+                        p1 = f"""{p1.split(", п/г")[0]}, п/г{p1.split(", п/г")[1].split(a1)[0]}"""
+
+                if "//" in p2:
+                    p12 = p2.split("//")[0]
+                    p22 = p2.split("//")[1]
+                    a12 = get_corp(p12)
+                    a22 = get_corp(p22)
+                    if a12:
+                        if "п/г" in p12:
+                            p12 = f"""{p12.split(", п/г")[0]}, п/г{p12.split(", п/г")[1].split(a12)[0]}"""
+                        else:
+                            p12 = p12.split(a12)[0]
+                    if a22:
+                        if "п/г" in p22:
+                            p22 = f"""{p22.split(", п/г")[0]}, п/г{p22.split(", п/г")[1].split(a22)[0]}"""
+                        else:
+                            p22 = p22.split(a22)[0]
+
+
+                    if a12 and a22:
+                        tt = f"{p12}//{p22}"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        p2 = tt
+                    elif a12:
+                        tt = f"{p12}//"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        p2 = tt
+                    elif a22:
+                        tt = f"//{p22}"
+                        tt = tt.replace(" // ", "//")
+                        tt = tt.replace(" //", "//")
+                        tt = tt.replace("// ", "//")
+                        p2 = tt
+
+                else:
+                    if "п/г" not in p2:
+                        p2 = p2.split(a2)[0]
+                    else:
+                        p2 = f"""{p2.split(", п/г")[0]}, п/г{p2.split(", п/г")[1].split(a2)[0]}"""
+                tt = f"{p1}|{p2}"
+                tt = tt.replace(" | ", "|")
+                tt = tt.replace("| ", "|")
+                tt = tt.replace(" |", "|")
+                tt_p.append(tt.strip())
+                break
+    else:
+        tt_p.append(None)
+
+
+
 
 def auid_one_1(p, tt_pa, tt_1):
     for i in tt_1:
-        a = ' '
-        if ", У" in i:
-            a = ", У"
-        elif ", А" in i:
-            a = ", А"
-        elif ", С" in i:
-            a = ", С"
-        elif ", К" in i:
-            a = ", K"
-        elif ", Г" in i:
-            a = ", Г"
-        elif ", Э" in i:
-            a = ", ЭОиДОТ"
         if p in i and "," in i:
+            i = i.split(") - ")[1]
             if " | " not in i:
-                if "п/г" not in i:
-                    if "//" not in i:
-                        tt_pa.append(f"""{a[2:]}{i.split("- ")[1].split(a)[1].rstrip()}""")
-                        break
+                if "//" not in i:
+                    a = get_corp(i)
+                    if a[2:] not in ["ЭОиДОТ", "С"]:
+                        tt = f"{a[2:]}{i.split(a)[1]}"
                     else:
-                        if a == ", С":
-                            tt_pa.append(
-                                f"""С""")
-                            break
-                        else:
-                            tt_pa.append(
-                            f"""{a[2:] * bool(len(i.split("- ")[1].split("//")[0]) > 1)}{i.split("- ")[1].split("//")[0].split(a)[-1].rstrip() * bool(len(i.split("- ")[1].split("//")[0]) > 1)}//{a[2:] * bool(len(i.split("- ")[1].split("//")[1]) > 1)}{(i.split("- ")[1].split("//")[1].split(a)[-1].rstrip()) * bool(len(i.split("- ")[1].split("//")[1]) > 1)}""")
-                            break
-                else:
-                    tt_pa.append(
-                        f"{i.split(', п/г')[1].split(', ')[1].rstrip()}")
+                        tt = f"{a[2:]}"
+                    tt_pa.append(tt.strip())
                     break
+                else:
+                    p1 = i.split("//")[0]
+                    p2 = i.split("//")[1]
+                    a1 = get_corp(p1)
+                    a2 = get_corp(p2)
+                    tt1 = tt2 = ''
+                    if a1:
+                        if a1[2:] not in ["ЭОиДОТ", "С"]:
+                            tt1 = f"{a1[2:]}{p1.split(a1)[1]}"
+                        else:
+                            tt1 = f"{a1[2:]}"
+                    if a2:
+                        if a2[2:] not in ["ЭОиДОТ", "С"]:
+                            tt2 = f"{a2[2:]}{p2.split(a2)[1]}"
+                        else:
+                            tt2 = f"{a2[2:]}"
+                    tt = f"{tt1}//{tt2}".strip()
+                    tt = tt.replace(" // ", "//")
+                    tt = tt.replace("// ", "//")
+                    tt = tt.replace(" //", "//")
+                    tt_pa.append(tt.strip())
+                    break
+
             else:
-                # tt = i.split(" - ")[1]
-                # tt_pa.append(
-                #     f"{tt.split(' | ')[0].split(', п/г')[1].split(', ')[1]} | {'//' * (tt.split(' | ')[1][1] == '/')}{tt.split(' | ')[1].split(', п/г')[1].split(', ')[1].rstrip()}")
+                p1 = i.split("|")[0]
+                p2 = i.split("|")[1]
+                a1 = get_corp(p1)
+                a2 = get_corp(p2)
 
+                if "//" in p1:
+                    p11 = p1.split("//")[0]
+                    p21 = p1.split("//")[1]
+                    a11 = get_corp(p11)
+                    a21 = get_corp(p21)
+                    tt11 = tt21 = ''
+                    if a11:
+                        if a11[2:] not in ["ЭОиДОТ", "С"]:
+                            tt11 = f"{a11[2:]}{p11.split(a11)[1]}"
+                        else:
+                            tt11 = f"{a11[2:]}"
+                    if a21:
+                        if a21[2:] not in ["ЭОиДОТ", "С"]:
+                            tt21 = f"{a21[2:]}{p21.split(a21)[1]}"
+                        else:
+                            tt21 = f"{a21[2:]}"
 
-                tt = i.split(" - ")[1]
-                print(tt)
-                a = "• 1 пара (08:30-09:50) - Иностранный язык, п/г1, У506 | Иностранный язык, п/г2, А518"
-                x1 = tt.split(' | ')[0]
-                if "//" in x1:
-                    if ', п/г' in x1.split('//')[0]:
-                        x11 = f"{x1.split('//')[0].split(', п/г')[1].split(', ')[1]}"
-                    else:
-                        x11 = f""
-                    if ', п/г' in x1.split('//')[1]:
-                        x12 = f"{x1.split('//')[1].split(', п/г')[1].split(', ')[1]}"
-                    else:
-                        x12 = f""
+                    tt1 = f"{tt11}//{tt21}"
                 else:
-                    x11 = f"{x1.split(', п/г')[1].split(', ')[1]}"
+                    if a1[2:] not in ["ЭОиДОТ", "С"]:
+                        tt1 = f"{a1[2:]}{p1.split(a1)[1]}"
+                    else:
+                        tt1 = f"{a1[2:]}"
 
-                x2 = tt.split(' | ')[1]
-                if "//" in x2:
-                    if ', п/г' in x2.split('//')[0]:
-                        x21 = f"{x2.split('//')[0].split(', п/г')[1].split(', ')[1]}"
-                    else:
-                        x21 = f""
-                    if ', п/г' in x2.split('//')[1]:
-                        x22 = f"{x2.split('//')[1].split(', п/г')[1].split(', ')[1]}"
-                    else:
-                        x22 = f""
+                if "//" in p2:
+                    p12 = p2.split("//")[0]
+                    p22 = p2.split("//")[1]
+                    a12 = get_corp(p12)
+                    a22 = get_corp(p22)
+                    tt12 = tt22 = ''
+                    if a12:
+                        if a12[2:] not in ["ЭОиДОТ", "С"]:
+                            tt12 = f"{a12[2:]}{p12.split(a12)[1]}"
+                        else:
+                            tt12 = f"{a12[2:]}"
+                    if a22:
+                        if a22[2:] not in ["ЭОиДОТ", "С"]:
+                            tt22 = f"{a22[2:]}{p22.split(a22)[1]}"
+                        else:
+                            tt22 = f"{a22[2:]}"
+                    tt2 = f"{tt12}//{tt22}"
                 else:
-                    x21 = f"{x2.split(', п/г')[1].split(', ')[1]}"
+                    if a2[2:] not in ["ЭОиДОТ", "С"]:
+                        tt2 = f"{a2[2:]}{p2.split(a2)[1]}"
+                    else:
+                        tt2 = f"{a2[2:]}"
 
-                if "//" in x1 and "//" in x2:
-                    tt_pa.append(f"{x11.rstrip()}//{x12.rstrip()} | {x21.rstrip()}//{x22.rstrip()}")
-                elif "//" in x1:
-                    tt_pa.append(f"{x11.rstrip()}//{x12.rstrip()} | {x21.rstrip()}")
-                elif "//" in x2:
-                    tt_pa.append(f"{x11.rstrip()} | {x21.rstrip()}//{x22.rstrip()}")
+                tt = f"{tt1}|{tt2}".strip()
+                tt = tt.replace(" // ", "//")
+                tt = tt.replace("// ", "//")
+                tt = tt.replace(" //", "//")
+                tt = tt.replace(" | ", "|")
+                tt = tt.replace("| ", "|")
+                tt = tt.replace(" |", "|")
+                tt_pa.append(tt)
                 break
+
     else:
         tt_pa.append(None)
-    df = "• 1 пара (08:30-09:50) - //Физика (пр), А314"
+
 
 def auid_one(tt_1):
     auid_one_1("1 пара", tt_1pa, tt_1)
@@ -321,161 +477,149 @@ def auid_one(tt_1):
 
 @all_hand_router.message(Text(text="1"))
 async def parse_tt(message: types.Message, db: Database):
-    tt = a
-    tt = tt.split("\n\n")
-    global tt_1, tt_2, tt_4, tt_5, tt_6, tt_1p, tt_2p, tt_3p, tt_4p, tt_5p, tt_6p, tt_7p, tt_8p
-    global tt_1pa, tt_2pa, tt_3pa, tt_4pa, tt_5pa, tt_6pa, tt_7pa, tt_8pa
-    tt_1 = tt[0].split("• ")
-    tt_2 = tt[1].split("• ")
-    tt_3 = tt[2].split("• ")
-    tt_4 = tt[3].split("• ")
-    tt_5 = tt[4].split("• ")
-    tt_6 = tt[5].split("• ")
-    print(tt_5)
-    tt_1p = []
-    tt_2p = []
-    tt_3p = []
-    tt_4p = []
-    tt_5p = []
-    tt_6p = []
-    tt_7p = []
-    tt_8p = []
 
-    tt_1pa = []
-    tt_2pa = []
-    tt_3pa = []
-    tt_4pa = []
-    tt_5pa = []
-    tt_6pa = []
-    tt_7pa = []
-    tt_8pa = []
+    groups = ["603-01", "603-02", "604-01", "605-01",
+              "606-01", "607-01", "608-01",  "609-01", "601-91", "603-91",  "604-91", "605-91",
+              "606-91", "607-91", "609-91"]
 
-    tt_one(tt_1)
-    tt_one(tt_2)
-    tt_one(tt_3)
-    tt_one(tt_4)
-    tt_one(tt_5)
-    tt_one(tt_6)
+    for group_number in groups:
+        print(group_number)
+        a = await db.student_tt.get_tt_week(group_number)
 
-    auid_one(tt_1)
-    auid_one(tt_2)
-    auid_one(tt_3)
-    auid_one(tt_4)
-    auid_one(tt_5)
-    auid_one(tt_6)
-
-    print(tt_1p)
-    print(tt_2p)
-    print(tt_3p)
-    print(tt_4p)
-    print(tt_5p)
-    print(tt_6p)
-    print(tt_7p)
-    print(tt_8p)
-    print("\nAuiditorii))\n")
-    print(tt_1pa)
-    print(tt_2pa)
-    print(tt_3pa)
-    print(tt_4pa)
-    print(tt_5pa)
-    print(tt_6pa)
-    print(tt_7pa)
-    print(tt_8pa)
-    groups = ["601-21", "601-21м", "602-21", "602-21м", "603-21", "603-22", "603-21м", "604-21", "604-21м", "605-21",
-              "605-21м", "606-21", "606-22", "606-21м", "607-21", "607-22", "607-21м", "608-21", "608-22", "608-21м",
-              "609-21", "609-22", "601-11", "601-11м", "602-11", "602-11м", "603-11", "603-11м", "604-11", "604-11м",
-              "605-11", "605-11м", "606-11", "606-12", "606-11м", "607-11", "607-12", "607-11м", "608-11", "608-12",
+        a = a.replace(".", ",")
+        a = a.replace(" , ", ", ")
+        for i in range(len(a)):
+            if a[i] == "," and i != len(a):
+                if a[i + 1] != ' ' :
+                    a = f"{a[:i+1]} {a[i+1:]}"
 
 
-              "608-11м",
+        tt = a
+        print(tt)
+        tt = tt.split("\n\n")
 
-              "609-11", "609-12", "603-12", "601-01", "602-01", "603-01", "603-02", "604-01", "605-01",
-              "606-01",
-              "607-01", "608-01", "608-02", "609-01", "601-91", "602-91", "603-91", "603-92", "604-91", "605-91",
-              "606-91",
-              "607-91", "608-91", "608-92", "609-91"]
-    group_number = "609-11"
+        global tt_1, tt_2, tt_4, tt_5, tt_6, tt_1p, tt_2p, tt_3p, tt_4p, tt_5p, tt_6p, tt_7p, tt_8p
+        global tt_1pa, tt_2pa, tt_3pa, tt_4pa, tt_5pa, tt_6pa, tt_7pa, tt_8pa
+        tt_1 = tt[0].split("• ")
+        print("this !")
+        print(tt_1)
+        tt_2 = tt[1].split("• ")
+        tt_3 = tt[2].split("• ")
+        tt_4 = tt[3].split("• ")
+        tt_5 = tt[4].split("• ")
+        tt_6 = tt[5].split("• ")
+
+        tt_1p = []
+        tt_2p = []
+        tt_3p = []
+        tt_4p = []
+        tt_5p = []
+        tt_6p = []
+        tt_7p = []
+        tt_8p = []
+
+        tt_1pa = []
+        tt_2pa = []
+        tt_3pa = []
+        tt_4pa = []
+        tt_5pa = []
+        tt_6pa = []
+        tt_7pa = []
+        tt_8pa = []
+
+        tt_one(tt_1)
+        tt_one(tt_2)
+        tt_one(tt_3)
+        tt_one(tt_4)
+        tt_one(tt_5)
+        tt_one(tt_6)
+
+        auid_one(tt_1)
+        auid_one(tt_2)
+        auid_one(tt_3)
+        auid_one(tt_4)
+        auid_one(tt_5)
+        auid_one(tt_6)
+
+        print(tt_1p)
+        print(tt_2p)
+        print(tt_3p)
+        print(tt_4p)
+        print(tt_5p)
+        print(tt_6p)
+        print(tt_7p)
+        print(tt_8p)
+        print("\nAuiditorii))\n")
+        print(tt_1pa)
+        print(tt_2pa)
+        print(tt_3pa)
+        print(tt_4pa)
+        print(tt_5pa)
+        print(tt_6pa)
+        print(tt_7pa)
+        print(tt_8pa)
 
 
-    await db.student_tt1.new(group_number=group_number, period_number=1, monday_subject=tt_1p[0],
-                             monday_class=tt_1pa[0], tuesday_subject=tt_1p[1], tuesday_class=tt_1pa[1],
-                             wednesday_subject=tt_1p[2], wednesday_class=tt_1pa[2], thursday_subject=tt_1p[3],
-                             thursday_class=tt_1pa[3], friday_subject=tt_1p[4], friday_class=tt_1pa[4],
-                             saturday_subject=tt_1p[5], saturday_class=tt_1pa[5])
 
-    await db.student_tt1.new(group_number=group_number, period_number=2, monday_subject=tt_2p[0],
-                             monday_class=tt_2pa[0], tuesday_subject=tt_2p[1], tuesday_class=tt_2pa[1],
-                             wednesday_subject=tt_2p[2], wednesday_class=tt_2pa[2], thursday_subject=tt_2p[3],
-                             thursday_class=tt_2pa[3], friday_subject=tt_2p[4], friday_class=tt_2pa[4],
-                             saturday_subject=tt_2p[5], saturday_class=tt_2pa[5])
+        await db.student_tt1.new(group_number=group_number, period_number=1, monday_subject=tt_1p[0],
+                                 monday_class=tt_1pa[0], tuesday_subject=tt_1p[1], tuesday_class=tt_1pa[1],
+                                 wednesday_subject=tt_1p[2], wednesday_class=tt_1pa[2], thursday_subject=tt_1p[3],
+                                 thursday_class=tt_1pa[3], friday_subject=tt_1p[4], friday_class=tt_1pa[4],
+                                 saturday_subject=tt_1p[5], saturday_class=tt_1pa[5])
 
-    await db.student_tt1.new(group_number=group_number, period_number=3, monday_subject=tt_3p[0],
-                             monday_class=tt_3pa[0], tuesday_subject=tt_3p[1], tuesday_class=tt_3pa[1],
-                             wednesday_subject=tt_3p[2], wednesday_class=tt_3pa[2], thursday_subject=tt_3p[3],
-                             thursday_class=tt_3pa[3], friday_subject=tt_3p[4], friday_class=tt_3pa[4],
-                             saturday_subject=tt_3p[5], saturday_class=tt_3pa[5])
+        await db.student_tt1.new(group_number=group_number, period_number=2, monday_subject=tt_2p[0],
+                                 monday_class=tt_2pa[0], tuesday_subject=tt_2p[1], tuesday_class=tt_2pa[1],
+                                 wednesday_subject=tt_2p[2], wednesday_class=tt_2pa[2], thursday_subject=tt_2p[3],
+                                 thursday_class=tt_2pa[3], friday_subject=tt_2p[4], friday_class=tt_2pa[4],
+                                 saturday_subject=tt_2p[5], saturday_class=tt_2pa[5])
 
-    await db.student_tt1.new(group_number=group_number, period_number=4, monday_subject=tt_4p[0],
-                             monday_class=tt_4pa[0], tuesday_subject=tt_4p[1], tuesday_class=tt_4pa[1],
-                             wednesday_subject=tt_4p[2], wednesday_class=tt_4pa[2], thursday_subject=tt_4p[3],
-                             thursday_class=tt_4pa[3], friday_subject=tt_4p[4], friday_class=tt_4pa[4],
-                             saturday_subject=tt_4p[5], saturday_class=tt_4pa[5])
+        await db.student_tt1.new(group_number=group_number, period_number=3, monday_subject=tt_3p[0],
+                                 monday_class=tt_3pa[0], tuesday_subject=tt_3p[1], tuesday_class=tt_3pa[1],
+                                 wednesday_subject=tt_3p[2], wednesday_class=tt_3pa[2], thursday_subject=tt_3p[3],
+                                 thursday_class=tt_3pa[3], friday_subject=tt_3p[4], friday_class=tt_3pa[4],
+                                 saturday_subject=tt_3p[5], saturday_class=tt_3pa[5])
 
-    await db.student_tt1.new(group_number=group_number, period_number=5, monday_subject=tt_5p[0],
-                             monday_class=tt_5pa[0], tuesday_subject=tt_5p[1], tuesday_class=tt_5pa[1],
-                             wednesday_subject=tt_5p[2], wednesday_class=tt_5pa[2], thursday_subject=tt_5p[3],
-                             thursday_class=tt_5pa[3], friday_subject=tt_5p[4], friday_class=tt_5pa[4],
-                             saturday_subject=tt_5p[5], saturday_class=tt_5pa[5])
+        await db.student_tt1.new(group_number=group_number, period_number=4, monday_subject=tt_4p[0],
+                                 monday_class=tt_4pa[0], tuesday_subject=tt_4p[1], tuesday_class=tt_4pa[1],
+                                 wednesday_subject=tt_4p[2], wednesday_class=tt_4pa[2], thursday_subject=tt_4p[3],
+                                 thursday_class=tt_4pa[3], friday_subject=tt_4p[4], friday_class=tt_4pa[4],
+                                 saturday_subject=tt_4p[5], saturday_class=tt_4pa[5])
 
-    await db.student_tt1.new(group_number=group_number, period_number=6, monday_subject=tt_6p[0],
-                             monday_class=tt_6pa[0], tuesday_subject=tt_6p[1], tuesday_class=tt_6pa[1],
-                             wednesday_subject=tt_6p[2], wednesday_class=tt_6pa[2], thursday_subject=tt_6p[3],
-                             thursday_class=tt_6pa[3], friday_subject=tt_6p[4], friday_class=tt_6pa[4],
-                             saturday_subject=tt_6p[5], saturday_class=tt_6pa[5])
+        await db.student_tt1.new(group_number=group_number, period_number=5, monday_subject=tt_5p[0],
+                                 monday_class=tt_5pa[0], tuesday_subject=tt_5p[1], tuesday_class=tt_5pa[1],
+                                 wednesday_subject=tt_5p[2], wednesday_class=tt_5pa[2], thursday_subject=tt_5p[3],
+                                 thursday_class=tt_5pa[3], friday_subject=tt_5p[4], friday_class=tt_5pa[4],
+                                 saturday_subject=tt_5p[5], saturday_class=tt_5pa[5])
 
-    await db.student_tt1.new(group_number=group_number, period_number=7, monday_subject=tt_7p[0],
-                             monday_class=tt_7pa[0], tuesday_subject=tt_7p[1], tuesday_class=tt_7pa[1],
-                             wednesday_subject=tt_7p[2], wednesday_class=tt_7pa[2], thursday_subject=tt_7p[3],
-                             thursday_class=tt_7pa[3], friday_subject=tt_7p[4], friday_class=tt_7pa[4],
-                             saturday_subject=tt_7p[5], saturday_class=tt_7pa[5])
+        await db.student_tt1.new(group_number=group_number, period_number=6, monday_subject=tt_6p[0],
+                                 monday_class=tt_6pa[0], tuesday_subject=tt_6p[1], tuesday_class=tt_6pa[1],
+                                 wednesday_subject=tt_6p[2], wednesday_class=tt_6pa[2], thursday_subject=tt_6p[3],
+                                 thursday_class=tt_6pa[3], friday_subject=tt_6p[4], friday_class=tt_6pa[4],
+                                 saturday_subject=tt_6p[5], saturday_class=tt_6pa[5])
 
-    await db.student_tt1.new(group_number=group_number, period_number=8, monday_subject=tt_8p[0],
-                             monday_class=tt_8pa[0], tuesday_subject=tt_8p[1], tuesday_class=tt_8pa[1],
-                             wednesday_subject=tt_8p[2], wednesday_class=tt_8pa[2], thursday_subject=tt_8p[3],
-                             thursday_class=tt_8pa[3], friday_subject=tt_8p[4], friday_class=tt_8pa[4],
-                             saturday_subject=tt_8p[5], saturday_class=tt_8pa[5])
+        await db.student_tt1.new(group_number=group_number, period_number=7, monday_subject=tt_7p[0],
+                                 monday_class=tt_7pa[0], tuesday_subject=tt_7p[1], tuesday_class=tt_7pa[1],
+                                 wednesday_subject=tt_7p[2], wednesday_class=tt_7pa[2], thursday_subject=tt_7p[3],
+                                 thursday_class=tt_7pa[3], friday_subject=tt_7p[4], friday_class=tt_7pa[4],
+                                 saturday_subject=tt_7p[5], saturday_class=tt_7pa[5])
 
-a = """Расписание на понедельник:
-• 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
-• 4 пара (13:20-14:40) - Теория вероятностей (лек), А410//
-• 5 пара (14:50-16:10) - Теория вероятностей (пр), А410
+        await db.student_tt1.new(group_number=group_number, period_number=8, monday_subject=tt_8p[0],
+                                 monday_class=tt_8pa[0], tuesday_subject=tt_8p[1], tuesday_class=tt_8pa[1],
+                                 wednesday_subject=tt_8p[2], wednesday_class=tt_8pa[2], thursday_subject=tt_8p[3],
+                                 thursday_class=tt_8pa[3], friday_subject=tt_8p[4], friday_class=tt_8pa[4],
+                                 saturday_subject=tt_8p[5], saturday_class=tt_8pa[5])
 
-Расписание на вторник:
-• 1 пара (08:30-09:50) - Иностранный язык, п/г1, У506 | Иностранный язык, п/г2, А518
-• 2 пара (10:00-11:20) - Правоведение (пр), А514
-• 3 пара (11:30-12:50) - Программирование мобильных устройств, п/г1, У406 | Цифровая схемотехника, п/г2, У401
-• 4 пара (13:20-14:40) - Программирование мобильных устройств (лек), У903//
 
-Расписание на среду:
-• 2 пара (10:00-11:20) - Цифровая схемотехника (лек), У903
-• 3 пара (11:30-12:50) - Теория языков программирования и методы трансляции (лек), У903
-• 4 пара (13:20-14:40) - Теория языков программирования и методы трансляции, п/г1, У408
-• 5 пара (14:50-16:10) - Программирование на языке Python, п/г1, У406
 
-Расписание на четверг:
-• 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
-• 4 пара (13:20-14:40) - Программирование на языке Python (лек), У903// Элементы и устройства автоматизированных систем (лек), У903
-• 5 пара (14:50-16:10) - Программирование мобильных устройств, п/г2, У408
-• 6 пара (16:20-17:40) - Программирование на языке Python, п/г2, У406
 
-Расписание на пятницу:
-• 5 пара (14:50-16:10) - Цифровая схемотехника, п/г1, У401 | Математические основы теории систем, п/г2, У406
-• 6 пара (16:20-17:40) - Математические основы теории систем, п/г1, У406 | Теория языков программирования и методы трансляции, п/г2, У408
 
-Расписание на субботу:
-• 1 пара (08:30-09:50) - Математические основы теории систем (лек), У903
-• 4 пара (13:20-14:40) - Проектная деятельность (пр), ЭОиДОТ
-• МООК - Правоведение (лек 32 ч)"""
+#
+# "601-21", "601-21м", "602-21", "602-21м", "603-21", "603-22", "603-21м", "604-21", "604-21м", "605-21",
+#               "605-21м", "606-21", "606-22", "606-21м", "607-21", "607-22", "607-21м", "608-21", "608-22", "608-21м",
+#               "609-21", "609-22", "601-11", "601-11м", "602-11", "602-11м", "603-11", "603-11м", "604-11", "604-11м",
+#               "605-11", "605-11м", "606-11", "606-12", "606-11м", "607-11", "607-12", "607-11м", "608-11", "608-12",
+#               "608-11м", "609-11", "609-12", "603-12",                      ,   !!"608-02!! , !!"602-91"!! "603-92", "608-91", "608-92",
+
 
 # if "//" in x1:
 #     if ', п/г' in x1.split('//')[0]:
@@ -509,3 +653,46 @@ a = """Расписание на понедельник:
 # elif "//" in x2:
 #     tt_pa.append(f"{x11} | {x21}//{x22}")
 # break
+
+    # a = """Расписание на понедельник:
+    # • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
+    # • 4 пара (13:20-14:40) - Теория вероятностей (лек), А410//
+    #
+    # Расписание на вторник:
+    # • 1 пара (08:30-09:50) - Правоведение (пр), А514
+    # • 2 пара (10:00-11:20) - Программирование мобильных устройств, п/г1, У406 | Цифровая схемотехника, п/г2, У401
+    # • 3 пара (11:30-12:50) - Теория вероятностей (пр), У505
+    # • 4 пара (13:20-14:40) - Программирование мобильных устройств (лек), У903//
+    #
+    # Расписание на среду:
+    # • 2 пара (10:00-11:20) - Цифровая схемотехника (лек), У903
+    # • 3 пара (11:30-12:50) - Теория языков программирования и методы трансляции (лек), У903
+    # • 4 пара (13:20-14:40) - Программирование на языке Python, п/г1, У406
+    # • 5 пара (14:50-16:10) - Математические основы теории систем. п/г1, У408
+    #
+    # Расписание на четверг:
+    # • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
+    # • 4 пара (13:20-14:40) - Программирование на языке Python (лек), У903// Элементы и устройства автоматизированных систем (лек), У903
+    # • 5 пара (14:50-16:10) - Цифровая схемотехника, п/г1, У401 | Программирование на языке Python, п/г2, У406
+    # • 6 пара (16:20-17:40) - Программирование мобильных устройств, п/г2, У408
+    #
+    # Расписание на пятницу:
+    # • 4 пара (13:20-14:40) - Математические основы теории систем. п/г2, У406
+    # • 5 пара (14:50-16:10) - Иностранный язык, п/г1, У507
+    #
+    # Расписание на субботу:
+    # • 1 пара (08:30-09:50) - Математические основы теории систем (лек), У903
+    # • 2 пара (10:00-11:20) - Теория языков программирования и методы трансляции, п/г1, У408 | Иностранный язык, п/г2, У507
+    # • 3 пара (11:30-12:50) - Теория языков программирования и методы трансляции, п/г2, У408
+    # • 5 пара (14:50-16:10) - Проектная деятельность (пр), ЭОиДОТ
+    # • МООК - Правоведение (лек 32 ч)"""
+
+#     adf = """Расписание на понедельник:
+#     • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
+#     • 4 пара (13:20-14:40) - Теория вероятностей (лек), А410//"""
+#
+#     sdf = """Понедельник
+# • 2 пара (10:00-11:20) - Теория игр и исследование операций (лек), У704
+# • 3 пара (11:30-12:50) - Теория игр и исследование операций (пр), У705
+# • 4 пара (13:20-14:40) - Искусственный интеллект (лек), У506
+# • 5 пара (14:50-16:10) - Искусственный интеллект (пр), У705"""

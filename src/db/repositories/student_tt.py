@@ -10,7 +10,7 @@ from .abstract import Repository
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, insert, update, and_
 from src import Time
-
+from src.Time import get_corp
 
 class Student_tt_Repo(Repository[Student_tt]):
     """
@@ -95,7 +95,7 @@ class Student_tt_Repo(Repository[Student_tt]):
     async def get_tt_week(self, group_number: str):
         sql = select(Student_tt.timetable).where(Student_tt.group_number == group_number)
 
-        week_tt = "Вот твое расписание на неделю\n\n"
+        week_tt = ''
         tt_ind = 0
         tt = await self.session.execute(sql)
         for weekday_tt in tt.fetchall():
@@ -110,13 +110,107 @@ class Student_tt_Repo(Repository[Student_tt]):
         subjects_set = set()
         for subject_day in subjects_request:
             for subject_period in subject_day[0].split("• ")[1:]:
-                subject = subject_period.split("- ")[1]
-                subject = subject.split(',')[0]
-                subject = subject.split('.')[0]
-                print("sub" + subject)
-                if subject[0] == '/':
-                    subject = subject[2:]
-                subjects_set.add(subject)
+                print(subject_period)
+                subject_period = subject_period.split(" - ")[1]
+                subject_period = subject_period.replace(".", ",")
+                subject_period = subject_period.replace(" , ", ", ")
+                subject_period = subject_period.replace(" | ", "|")
+                for i in range(len(subject_period)):
+                    if subject_period[i] == "," and i != len(subject_period):
+                        if subject_period[i + 1] != ' ':
+                            subject_period = f"{subject_period[:i + 1]} {subject_period[i + 1:]}"
+                if "," in subject_period:
+                    if "|" not in subject_period:
+                        if "//" not in subject_period:
+                            if "п/г" not in subject_period:
+                                print(subject_period)
+                                corp = get_corp(subject_period)
+                                print(corp)
+                                subject = subject_period.split(corp)[0]
+                            else:
+                                subject = subject_period.split(", п/г")[0]
+                            subjects_set.add(subject)
+                        else:
+                            subject1 = subject_period.split("//")[0]
+                            subject2 = subject_period.split("//")[1]
+                            corp1 = get_corp(subject1)
+                            corp2 = get_corp(subject2)
+                            if "," in subject1:
+                                if "п/г" not in subject1:
+                                    subject1 = subject1.split(corp1)[0]
+                                else:
+                                    subject1 = subject1.split(", п/г")[0]
+                                subjects_set.add(subject1)
+
+                            if "," in subject2:
+                                if "п/г" not in subject2:
+                                    subject2 = subject2.split(corp2)[0]
+                                else:
+                                    subject2 = subject2.split(", п/г")[0]
+                                subjects_set.add(subject2)
+
+                    else:
+                        subjects1 = subject_period.split("|")[0]
+                        subjects2 = subject_period.split("|")[1]
+
+                        if "//" not in subjects1:
+                            if "," in subjects1:
+                                corp1 = get_corp(subjects1)
+                                if "п/г" not in subjects1:
+                                    subject1 = subjects1.split(corp1)[0]
+                                else:
+                                    subject1 = subjects1.split(", п/г")[0]
+                                subjects_set.add(subject1)
+
+                        else:
+                            subject11 = subjects1.split("//")[0]
+                            subject21 = subjects1.split("//")[1]
+                            corp11 = get_corp(subject11)
+                            corp21 = get_corp(subject21)
+
+                            if "," in subject11:
+                                if "п/г" not in subject11:
+                                    subject11 = subject11.split(corp11)[0]
+                                else:
+                                    subject11 = subject11.split(", п/г")[0]
+                                subjects_set.add(subject11)
+
+                            if "," in subject21:
+                                if "п/г" not in subject21:
+                                    subject21 = subject21.split(corp21)[0]
+                                else:
+                                    subject21 = subject21.split(", п/г")[0]
+                                subjects_set.add(subject21)
+
+
+                        if "//" not in subjects2:
+                            if "," in subjects2:
+                                corp2 = get_corp(subjects2)
+                                if "п/г" not in subjects2:
+                                    subject2 = subjects2.split(corp2)[0]
+                                else:
+                                    subject2 = subjects2.split(", п/г")[0]
+                                subjects_set.add(subject2)
+
+                        else:
+                            subject12 = subjects2.split("//")[0]
+                            subject22 = subjects2.split("//")[1]
+                            corp12 = get_corp(subject12)
+                            corp22 = get_corp(subject22)
+
+                            if "," in subject12:
+                                if "п/г" not in subject12:
+                                    subject12 = subject12.split(corp12)[0]
+                                else:
+                                    subject12 = subject12.split(", п/г")[0]
+                                subjects_set.add(subject12)
+
+                            if "," in subject22:
+                                if "п/г" not in subject22:
+                                    subject22 = subject22.split(corp22)[0]
+                                else:
+                                    subject22 = subject22.split(", п/г")[0]
+                                subjects_set.add(subject22)
 
         for subject in subjects_set:
             subjects_list.append(subject)

@@ -106,3 +106,23 @@ def convert_tt_day(tt: list, subject: str):
 #         bot_DataBase.wakeup()
 #         time.sleep(480)
 
+
+def get_corp(i):
+    a = ' '
+    if ", У" in i:
+        a = ", У"
+    elif ", А" in i:
+        a = ", А"
+    elif ", С" in i:
+        a = ", С"
+    elif ", К" in i:
+        a = ", К"
+    elif ", K" in i:
+        a = ", K"
+    elif ", Г" in i:
+        a = ", Г"
+    elif ", Э" in i:
+        a = ", ЭОиДОТ"
+    else:
+        a = ''
+    return a
