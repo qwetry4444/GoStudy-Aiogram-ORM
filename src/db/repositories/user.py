@@ -32,7 +32,6 @@ class UserRepo(Repository[User]):
         Insert a new user into the database
         :param user_id: Telegram user id
         :param user_name: Telegram username
-
         """
 
         new_user = await self.session.merge(

@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 from src.configuration import conf
 
-from .repositories import ChatRepo, UserRepo, Student_tt_Repo, Lecturer_tt_Repo, Student_tt_Repo1
+from .repositories import ChatRepo, UserRepo, Student_tt_Repo, Lecturer_tt_Repo, Student_tt_Repo1, Group_subjectsRepo
 
 
 def create_async_engine(url: Union[URL, str]) -> AsyncEngine:
@@ -47,11 +47,12 @@ class Database:
     student_tt: Student_tt_Repo
     lecturer_tt: Lecturer_tt_Repo
     student_tt1: Student_tt_Repo1
+    group_subjects: Group_subjectsRepo
     session: AsyncSession
 
     def __init__(
         self, session: AsyncSession, user: UserRepo = None, chat: ChatRepo = None, student_tt: Student_tt_Repo = None,
-            lecturer_tt: Lecturer_tt_Repo = None, student_tt1: Student_tt_Repo1 = None
+            lecturer_tt: Lecturer_tt_Repo = None, student_tt1: Student_tt_Repo1 = None, group_subjects = None
     ):
         self.session = session
         self.user = user or UserRepo(session=session)
@@ -59,3 +60,4 @@ class Database:
         self.student_tt = student_tt or Student_tt_Repo(session=session)
         self.lecturer_tt = lecturer_tt or Lecturer_tt_Repo(session=session)
         self.student_tt1 = student_tt1 or Student_tt_Repo1(session=session)
+        self.group_subjects = group_subjects or Group_subjectsRepo(session=session)

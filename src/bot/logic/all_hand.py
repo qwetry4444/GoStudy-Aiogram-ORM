@@ -13,7 +13,7 @@ import src.messages as mes
 from src.bot.keyboards.keyboards import START
 from src.db.database import Database
 from src.bot.states import States
-from src.bot.create_message import change_group_successful
+from src.bot.create_message import change_group_successful, lecturer_of_subject
 from src import Time
 
 all_hand_router = Router(name="all_hand_router")
@@ -88,13 +88,6 @@ async def ch_zn(message: types.Message):
     await message.answer(Time.get_ch_zn())
 
 
-@all_hand_router.message(Text(text="Узнать ФИО преподавателя"))
-async def lecturer_fio(message: types.Message, state: FSMContext, db: Database):
-    await message.answer(mes.WHAT_LECTURER_TEACH, reply_markup=keyboards.create_subjects(
-        await db.student_tt.get_subjects(await db.user.get_user_group(message.from_user.id))))
-    await state.set_state(States.Get_Lecturer_name)
-
-
 @all_hand_router.message(Text, States.Get_Lecturer_tt)
 async def change_group_request(message: types.Message, db: Database, state: FSMContext):
     if message.text.lower() == mes.BACK:
@@ -113,12 +106,13 @@ async def change_group_request(message: types.Message, db: Database, state: FSMC
 
 @all_hand_router.message(Text(text="2"))
 async def get_lecturer_name_by_subject(message: types.Message, db: Database):
-    group = await db.user.get_user_group(message.from_user.id)
-    tt_spot = await db.student_tt1.get_tt_spot(group_number=group, subject="Проектная деятельность (пр)")
-    lecturer_name = await db.lecturer_tt.get_lucturer_name(tt_spot=tt_spot, group=group)
-    await message.answer(lecturer_name)
+    await db.lecturer_tt.change_lec_name()
 
 
+@all_hand_router.message(Text(text="3"))
+async def new_group_subjecsts(message: types.Message, db: Database):
+    for group in mes.groups:
+        await db.group_subjects.new(group, await db.student_tt.get_subjects(group))
 
 
 @all_hand_router.message(Text(text="Расписание преподавателя"))
@@ -127,32 +121,48 @@ async def get_lecturer_tt(message: types.Message, state: FSMContext):
     await state.set_state(States.Get_Lecturer_tt)
 
 
-@all_hand_router.callback_query(Text)
-async def logic_inline(call: types.CallbackQuery, db: Database):
+# @all_hand_router.callback_query(Text)
+# async def logic_inline(call: types.CallbackQuery, db: Database):
+#     print(call.data)
+#
+#     id = call.from_user.id
+#     print(id)
+#     await call.message.answer(call.data)
+#     group = await db.user.get_user_group(id)
+#     print(2)
+#     tt_spot = await db.student_tt1.get_tt_spot(group_number=group, subject=call.data)
+#     print(3)
+#     lecturer_name = await db.lecturer_tt.get_lucturer_name(tt_spot=tt_spot, group=group)
+#     print(4)
+#     await call.message.answer(lecturer_name)
+
+
+@all_hand_router.message(Text(text="Узнать ФИО преподавателя"))
+async def lecturer_fio(message: types.Message, state: FSMContext, db: Database):
+    await message.answer(mes.WHAT_LECTURER_TEACH, reply_markup=keyboards.create_subjects(
+        await db.student_tt.get_subjects(await db.user.get_user_group(message.from_user.id))))
+    await state.set_state(States.Get_Lecturer_name)
+
+
+@all_hand_router.callback_query(States.Get_Lecturer_name)
+async def logic_inline(call, db: Database, state: FSMContext):
+    group = await db.user.get_user_group(call.from_user.id)
+    group_subjects = await db.group_subjects.get_by_group(group)
+    print(group_subjects)
     print(call.data)
+    tt_spot = await db.student_tt1.get_tt_spot(group_number=group, subject=group_subjects[int(call.data)])
+    if ("п/г1") in group_subjects[int(call.data)]:
+        group = f"""{group}а"""
+    if ("п/г2") in group_subjects[int(call.data)]:
+        group = f"""{group}б"""
 
-    id = call.from_user.id
-    print(id)
-    await call.message.answer(call.data)
-    group = await db.user.get_user_group(id)
-    print(2)
-    tt_spot = await db.student_tt1.get_tt_spot(group_number=group, subject=call.data)
-    print(3)
+    print(group)
+
     lecturer_name = await db.lecturer_tt.get_lucturer_name(tt_spot=tt_spot, group=group)
-    print(4)
+
+    await call.message.answer(lecturer_of_subject(group_subjects[int(call.data)]))
     await call.message.answer(lecturer_name)
 
-
-
-
-
-
-@all_hand_router.callback_query()
-async def logic_inline(call, db: Database):
-    group = await db.user.get_user_group(call.message.from_user.id)
-    tt_spot = await db.student_tt1.get_tt_spot(group_number=group, subject=call.message.data)
-    lecturer_name = await db.lecturer_tt.get_lucturer_name(tt_spot=tt_spot, group=group)
-    await call.message.answer(lecturer_name)
 
 
 def get_corp(i):
@@ -175,6 +185,7 @@ def get_corp(i):
         a = ''
     return a
 
+
 def slash_parse_a(i):
     x1 = i.split("//")[0]
     x2 = i.split("//")[1]
@@ -187,6 +198,7 @@ def slash_parse_a(i):
         return f"""{a1[2:]}{x1.split(a1)[1]}//"""
     else:
         return f"""{a2[2:]}{x2.split(a2)[1]}"""
+
 
 def slash_parse_p(i, tt_p):
     x1 = i.split("//")[0]
@@ -201,6 +213,7 @@ def slash_parse_p(i, tt_p):
     else:
         return f"""//{x2.split(a2)[0].split(', п/г')[0]}"""
 
+
 def tt_one(tt_1):
     # • 1 пара (08:30-09:50) - Иностранный язык, п/г1, У507 | Структурное программирование, п/г2, У408
     tt_one_1("1 пара", tt_1p, tt_1)
@@ -211,6 +224,7 @@ def tt_one(tt_1):
     tt_one_1("6 пара", tt_6p, tt_1)
     tt_one_1("7 пара", tt_7p, tt_1)
     tt_one_1("8 пара", tt_8p, tt_1)
+
 
 def tt_one_1(p, tt_p, tt_1):
     for i in tt_1:
@@ -324,7 +338,6 @@ def tt_one_1(p, tt_p, tt_1):
                         else:
                             p22 = p22.split(a22)[0]
 
-
                     if a12 and a22:
                         tt = f"{p12}//{p22}"
                         tt = tt.replace(" // ", "//")
@@ -357,8 +370,6 @@ def tt_one_1(p, tt_p, tt_1):
                 break
     else:
         tt_p.append(None)
-
-
 
 
 def auid_one_1(p, tt_pa, tt_1):
@@ -477,9 +488,8 @@ def auid_one(tt_1):
 
 @all_hand_router.message(Text(text="1"))
 async def parse_tt(message: types.Message, db: Database):
-
     groups = ["603-01", "603-02", "604-01", "605-01",
-              "606-01", "607-01", "608-01",  "609-01", "601-91", "603-91",  "604-91", "605-91",
+              "606-01", "607-01", "608-01", "609-01", "601-91", "603-91", "604-91", "605-91",
               "606-91", "607-91", "609-91"]
 
     for group_number in groups:
@@ -490,9 +500,8 @@ async def parse_tt(message: types.Message, db: Database):
         a = a.replace(" , ", ", ")
         for i in range(len(a)):
             if a[i] == "," and i != len(a):
-                if a[i + 1] != ' ' :
-                    a = f"{a[:i+1]} {a[i+1:]}"
-
+                if a[i + 1] != ' ':
+                    a = f"{a[:i + 1]} {a[i + 1:]}"
 
         tt = a
         print(tt)
@@ -559,8 +568,6 @@ async def parse_tt(message: types.Message, db: Database):
         print(tt_7pa)
         print(tt_8pa)
 
-
-
         await db.student_tt1.new(group_number=group_number, period_number=1, monday_subject=tt_1p[0],
                                  monday_class=tt_1pa[0], tuesday_subject=tt_1p[1], tuesday_class=tt_1pa[1],
                                  wednesday_subject=tt_1p[2], wednesday_class=tt_1pa[2], thursday_subject=tt_1p[3],
@@ -609,10 +616,6 @@ async def parse_tt(message: types.Message, db: Database):
                                  thursday_class=tt_8pa[3], friday_subject=tt_8p[4], friday_class=tt_8pa[4],
                                  saturday_subject=tt_8p[5], saturday_class=tt_8pa[5])
 
-
-
-
-
 #
 # "601-21", "601-21м", "602-21", "602-21м", "603-21", "603-22", "603-21м", "604-21", "604-21м", "605-21",
 #               "605-21м", "606-21", "606-22", "606-21м", "607-21", "607-22", "607-21м", "608-21", "608-22", "608-21м",
@@ -654,38 +657,38 @@ async def parse_tt(message: types.Message, db: Database):
 #     tt_pa.append(f"{x11} | {x21}//{x22}")
 # break
 
-    # a = """Расписание на понедельник:
-    # • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
-    # • 4 пара (13:20-14:40) - Теория вероятностей (лек), А410//
-    #
-    # Расписание на вторник:
-    # • 1 пара (08:30-09:50) - Правоведение (пр), А514
-    # • 2 пара (10:00-11:20) - Программирование мобильных устройств, п/г1, У406 | Цифровая схемотехника, п/г2, У401
-    # • 3 пара (11:30-12:50) - Теория вероятностей (пр), У505
-    # • 4 пара (13:20-14:40) - Программирование мобильных устройств (лек), У903//
-    #
-    # Расписание на среду:
-    # • 2 пара (10:00-11:20) - Цифровая схемотехника (лек), У903
-    # • 3 пара (11:30-12:50) - Теория языков программирования и методы трансляции (лек), У903
-    # • 4 пара (13:20-14:40) - Программирование на языке Python, п/г1, У406
-    # • 5 пара (14:50-16:10) - Математические основы теории систем. п/г1, У408
-    #
-    # Расписание на четверг:
-    # • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
-    # • 4 пара (13:20-14:40) - Программирование на языке Python (лек), У903// Элементы и устройства автоматизированных систем (лек), У903
-    # • 5 пара (14:50-16:10) - Цифровая схемотехника, п/г1, У401 | Программирование на языке Python, п/г2, У406
-    # • 6 пара (16:20-17:40) - Программирование мобильных устройств, п/г2, У408
-    #
-    # Расписание на пятницу:
-    # • 4 пара (13:20-14:40) - Математические основы теории систем. п/г2, У406
-    # • 5 пара (14:50-16:10) - Иностранный язык, п/г1, У507
-    #
-    # Расписание на субботу:
-    # • 1 пара (08:30-09:50) - Математические основы теории систем (лек), У903
-    # • 2 пара (10:00-11:20) - Теория языков программирования и методы трансляции, п/г1, У408 | Иностранный язык, п/г2, У507
-    # • 3 пара (11:30-12:50) - Теория языков программирования и методы трансляции, п/г2, У408
-    # • 5 пара (14:50-16:10) - Проектная деятельность (пр), ЭОиДОТ
-    # • МООК - Правоведение (лек 32 ч)"""
+# a = """Расписание на понедельник:
+# • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
+# • 4 пара (13:20-14:40) - Теория вероятностей (лек), А410//
+#
+# Расписание на вторник:
+# • 1 пара (08:30-09:50) - Правоведение (пр), А514
+# • 2 пара (10:00-11:20) - Программирование мобильных устройств, п/г1, У406 | Цифровая схемотехника, п/г2, У401
+# • 3 пара (11:30-12:50) - Теория вероятностей (пр), У505
+# • 4 пара (13:20-14:40) - Программирование мобильных устройств (лек), У903//
+#
+# Расписание на среду:
+# • 2 пара (10:00-11:20) - Цифровая схемотехника (лек), У903
+# • 3 пара (11:30-12:50) - Теория языков программирования и методы трансляции (лек), У903
+# • 4 пара (13:20-14:40) - Программирование на языке Python, п/г1, У406
+# • 5 пара (14:50-16:10) - Математические основы теории систем. п/г1, У408
+#
+# Расписание на четверг:
+# • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С
+# • 4 пара (13:20-14:40) - Программирование на языке Python (лек), У903// Элементы и устройства автоматизированных систем (лек), У903
+# • 5 пара (14:50-16:10) - Цифровая схемотехника, п/г1, У401 | Программирование на языке Python, п/г2, У406
+# • 6 пара (16:20-17:40) - Программирование мобильных устройств, п/г2, У408
+#
+# Расписание на пятницу:
+# • 4 пара (13:20-14:40) - Математические основы теории систем. п/г2, У406
+# • 5 пара (14:50-16:10) - Иностранный язык, п/г1, У507
+#
+# Расписание на субботу:
+# • 1 пара (08:30-09:50) - Математические основы теории систем (лек), У903
+# • 2 пара (10:00-11:20) - Теория языков программирования и методы трансляции, п/г1, У408 | Иностранный язык, п/г2, У507
+# • 3 пара (11:30-12:50) - Теория языков программирования и методы трансляции, п/г2, У408
+# • 5 пара (14:50-16:10) - Проектная деятельность (пр), ЭОиДОТ
+# • МООК - Правоведение (лек 32 ч)"""
 
 #     adf = """Расписание на понедельник:
 #     • 2 пара (10:30-11:50) - Элективные дисциплины по физической культуре и спорту, С

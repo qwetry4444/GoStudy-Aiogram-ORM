@@ -88,7 +88,7 @@ class Student_tt_Repo1(Repository[Student_tt1]):
                          Student_tt1.thursday_class, Student_tt1.thursday_subject, Student_tt1.friday_class,
                          Student_tt1.friday_subject, Student_tt1.saturday_class, Student_tt1.saturday_subject).where \
                 (Student_tt1.group_number == group_number, Student_tt1.period_number == period_number)
-            tt = (await self.session.execute(sql)).unique().one_or_none()
+            tt = (await self.session.execute(sql)).unique().first()
             print(tt)
             tt_ind = convert_tt_day(tt=tt, subject=subject)
             if tt_ind != -1:

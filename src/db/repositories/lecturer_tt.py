@@ -126,8 +126,8 @@ class Lecturer_tt_Repo(Repository[Lecturer_tt]):
 
     async def get_lecturer_tt(self, lecturer_name: str) -> str:
         last_name = lecturer_name.split()[0].lower()
-        print(last_name.title())
-        print(last_name in mes.lecturers_lastnames)
+        # print(last_name.title())
+        # print(last_name in mes.lecturers_lastnames)
         if last_name in mes.lecturers_lastnames:
             tt_monday = "<b>Понедельник</b>\n"
             tt_tuesday = "<b>Вторник</b>\n"
@@ -138,7 +138,7 @@ class Lecturer_tt_Repo(Repository[Lecturer_tt]):
 
             sql = select(Lecturer_tt).where(Lecturer_tt.lecturer_name.like(f"{lecturer_name.title()}%"))
             tt = (await self.session.execute(sql)).all()
-            print(tt[1][0].id)
+            # print(tt[1][0].id)
             tt_monday_exist = tt_tuesday_exist = tt_wednesday_exist = tt_thursday_exist = tt_friday_exist = tt_saturday_exist = 0
             for ind in range(8):
                 tt_monday += f"{ind + 1} пара - {tt[ind][0].monday_group}  :  {tt[ind][0].monday_class}\n" * bool(tt[ind][0].monday_class)
@@ -171,19 +171,29 @@ class Lecturer_tt_Repo(Repository[Lecturer_tt]):
             return ans
 
     async def change_lec_name(self):
-        pass
-        # sql = select(Lecturer_tt.lecturer_name)
-        # x = (await(self.session.execute(sql))).all()
-        # print(x)
-        # count = 0
-        # for i in range(len(x)):
-        #     if '.' in x[i][0]:
-        #         count += 1
-        # print(count)
-        # print(len(x))
 
-        # full_names = ["Никулина Ольга Вячеславовна", "Пичуева Анна Васильевна", "Торосян Вера Федоровна", "Туров Юрий Прокопьевич",
-        #               "Туров Юрий Прокопьевич"]
+        # full_names = mes.FULL_NAMES
+        # full_names = full_names.replace("\n", " ").split(" ")
+        # full_names_arr = []
+        #
+        # print(full_names)
+        # for i in range(0, len(full_names), 3):
+        #     full_names_arr.append(f"{full_names[i]} {full_names[i + 1]} {full_names[i + 2]}")
+        # print(full_names_arr)
+
+
+
+        sql = select(Lecturer_tt.lecturer_name)
+        x = (await(self.session.execute(sql))).all()
+        print(x)
+        count = 0
+        for i in range(len(x)):
+            if '.' in x[i][0]:
+                count += 1
+        print(count)
+        print(len(x))
+        #
+        # full_names = full_names_arr
         # small_names = []
         # for i in range(len(full_names)):
         #     print(i)

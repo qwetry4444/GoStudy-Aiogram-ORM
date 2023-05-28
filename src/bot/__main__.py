@@ -1,4 +1,3 @@
-""" This file represent startup bot logic"""
 import asyncio
 import logging
 
@@ -14,7 +13,6 @@ from src.language.translator import Translator
 
 
 async def start_bot():
-    """This function will start bot with polling mode"""
     bot = Bot(token=conf.bot.token)
     # cache = Cache()
     # storage = get_redis_storage(redis=cache)

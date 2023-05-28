@@ -44,9 +44,10 @@ CONFIRM = ReplyKeyboardMarkup(
 
 def create_subjects(subjects: list):
     SUBJECTS = InlineKeyboardBuilder()
-    for subject in subjects:
+    for subject_ind in range(len(subjects)):
         SUBJECTS.button(
-            text=subject, callback_data=subject[:33]
+            text=subjects[subject_ind], callback_data=subject_ind
         )
+
     SUBJECTS.adjust(1)
     return SUBJECTS.as_markup(resize_keyboard=True)
